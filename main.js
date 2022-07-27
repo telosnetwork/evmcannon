@@ -1,4 +1,5 @@
 import eosjs from "eosjs";
+import {isMainThread, parentPort, Worker, workerData} from "node:worker_threads";
 import {JsSignatureProvider} from "./node_modules/eosjs/dist/eosjs-jssig.js";
 import fetch from "node-fetch";
 import util from "util";
@@ -116,9 +117,22 @@ const api = new Api({
                            '💣 🚀 🔫 Type y and press enter when ready: ', async ans => {
         if (ans == 'y') {
             console.log('Bombs away!!!!!')
-            const blastResult = await api.rpc.push_transactions(blastTransactions);
-            console.log('Results:');
-            blastResult.forEach(trx => console.log(trx.transaction_id))
+            const chunkSize = config.EVM_PUSH_TRX_SIZE;
+
+            let batches = [];
+            for (let i = 0; i < blastTransactions.length; i += chunkSize) {
+                batches.push(blastTransactions.slice(i, i + chunkSize));
+            }
+
+            batches.forEach((currentBatch, idx) => {
+                let workerId = idx + 1;
+                console.log(`Launching push_transactions worker #${workerId}`);
+                const worker = new Worker('./cannonWorker.js', {
+                    workerData: {transactions: currentBatch, workerId}
+                });
+            });
+
+            //blastResult.forEach(trx => console.log(trx.transaction_id))
         } else {
             console.log('Cannon disarmed, ya chicken!');
         }
