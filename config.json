@@ -1,0 +1,9 @@
+{
+  "ENDPOINT": "http://localhost:8888",
+  "PRIV_KEY_TO_SIGN_TX": "pk of TRANSFER_FROM",
+  "TRANSFER_FROM": "jesse",
+  "EVM_CHAIN_ID": 41,
+  "EVM_BATCH_SIZE": 100,
+  "EVM_SENDER_PKS": [
+  ]
+}
