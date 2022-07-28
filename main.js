@@ -63,10 +63,15 @@ const api = new Api({
 (async () => {
     const gasPrice = '0x' + await telosApi.telos.getGasPrice()
     const trxPromises = [];
+    let addressCount = 0;
+    let addressTotal = config.EVM_SENDER_PKS.length;
+    const batchSize = config.EVM_BATCH_SIZE;
+    const chunkSize = config.EVM_PUSH_TRX_SIZE;
+    let totalTrx = addressTotal * batchSize;
+
     for (const key of config.EVM_SENDER_PKS) {
         const privateKeyBuffer = Buffer.from(key.startsWith('0x') ? key.substring(2) : key, 'hex')
         const ethAddress = "0x" + ethUtil.privateToAddress(privateKeyBuffer).toString('hex')
-        const batchSize = config.EVM_BATCH_SIZE;
 
         const amountToSendEther = ethers.utils.formatEther(BigNumber.from(gasPrice).mul(21000).add(1).mul(batchSize).add(100));
 
@@ -89,7 +94,6 @@ const api = new Api({
                 }
             })
         } catch (e) {
-            console.log("Address exists");
         } finally {
             await sendAction({
                 account: 'eosio.token',
@@ -108,16 +112,21 @@ const api = new Api({
                 }
             })
         }
+        process.stdout.write(`Loaded ${++addressCount * batchSize}/${totalTrx} transactions.  This is ${batchSize} EVM transactions for each of the ${addressTotal} addresses.\r`);
         trxPromises.push(getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, batchSize));
     }
+    console.log(`\nWaiting for all transactions to be generated...`);
     const blastTransactions = await Promise.all(trxPromises);
+    console.log(`All transactions generated!!!`)
     const rl = readline.createInterface({input: process.stdin, output: process.stdout});
 
-    rl.question(    '💣 🚀 🔫 Fire zee cannon?\n' +
+    rl.question(    `💣 🚀 🔫 There will be ${Math.ceil(addressTotal / chunkSize)} workers launched\n` +
+                           `💣 🚀 🔫 There are ${addressTotal} eosio transactions (with ${batchSize} EVM transactions in each)\n` +
+                           `💣 🚀 🔫 Each worker will send a chunk of ${chunkSize} eosio transactions\n` +
+                           '💣 🚀 🔫 Fire zee cannon?\n' +
                            '💣 🚀 🔫 Type y and press enter when ready: ', async ans => {
         if (ans == 'y') {
             console.log('Bombs away!!!!!')
-            const chunkSize = config.EVM_PUSH_TRX_SIZE;
 
             let batches = [];
             for (let i = 0; i < blastTransactions.length; i += chunkSize) {
@@ -165,7 +174,7 @@ async function getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, count) {
             ],
             data: {
                 ram_payer: 'eosio.evm',
-                tx: await makeTrx(privateKeyBuffer, nonce++, gasPrice, 21000, 1, ethAddress, ''),
+                tx: makeTrx(privateKeyBuffer, nonce++, gasPrice, 21000, 1, ethAddress, ''),
                 estimate_gas: false,
                 sender: ethAddress.substring(2)
             }
@@ -174,7 +183,6 @@ async function getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, count) {
 }
 
 async function makeBatchTrx(actions) {
-    console.log(`Batching ${actions.length} actions`)
     const expireDate = new Date(Date.now() + (55 * 60 * 1000));
     const result = await api.transact(
         { actions: actions },
@@ -184,7 +192,7 @@ async function makeBatchTrx(actions) {
     return result;
 }
 
-async function makeTrx(privateKeyBuffer, nonce, gasPrice, gasLimit, value, to, data) {
+function makeTrx(privateKeyBuffer, nonce, gasPrice, gasLimit, value, to, data) {
     const txData = {
         nonce,
         gasPrice,
