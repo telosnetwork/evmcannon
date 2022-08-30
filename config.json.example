@@ -6,5 +6,6 @@
   "EVM_CHAIN_ID": 41,
   "EVM_BATCH_SIZE": 100,
   "EVM_SENDER_PKS": [
-  ]
+  ],
+  "SWAP": false
 }

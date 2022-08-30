@@ -10,18 +10,36 @@ import ethUtil from "ethereumjs-util";
 import ethTrx from "@ethereumjs/tx";
 import EthJSCommon from "@ethereumjs/common";
 
+const pancakeSwapRouterAddress = '0x67a5d237530c9e09a7b3fdf52071179f4621bb3d';
+const benchAddress = '0xAFe48Cba47D3ffB3e988b7F329388495Cf2Fbcc8';
+const WTLOSAddress = '0x5bf0E1Fa3B7988660E8d22860743BB289196f0ac';
+const pairAddress = '0xfB7b8DC300661dD6b787cde08AF9CF4b1Db825B7';
+
 const Common = EthJSCommon.default;
 const Transaction = ethTrx.Transaction;
 
 import fs from "fs";
 
+let rawdata = fs.readFileSync('config.json');
+let config = JSON.parse(rawdata);
+
  // node only; not needed in browsers
 import readline from "readline";
 
+const router = new ethers.Contract(
+    pancakeSwapRouterAddress,
+    [
+        'function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts)',
+        'function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)',
+        'function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)',
+        'function WETH() external pure returns (address)'
+
+    ],
+    new ethers.providers.JsonRpcProvider(`${config.ENDPOINT}/evm`)
+);
+
 const Api = eosjs.Api;
 const JsonRpc = eosjs.JsonRpc;
-let rawdata = fs.readFileSync('config.json');
-let config = JSON.parse(rawdata);
 
 const chainId = config.EVM_CHAIN_ID;
 const chainConfig = Common.forCustomChain('mainnet', { chainId }, 'istanbul')
@@ -61,7 +79,9 @@ const api = new Api({
 
 
 (async () => {
+    console.log("Getting gas price...");
     const gasPrice = '0x' + await telosApi.telos.getGasPrice()
+    console.log("Got gas price");
     const trxPromises = [];
     let addressCount = 0;
     let addressTotal = config.EVM_SENDER_PKS.length;
@@ -161,6 +181,23 @@ async function sendAction(action) {
 async function getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, count) {
     let actions = []
 
+    let gasLimit = 21000;
+    let functionData = '';
+    let to = ethAddress;
+    let value = 1;
+    if (config.SWAP) {
+        value = 100000;
+        value = 100000;
+        to = pancakeSwapRouterAddress;
+        functionData = router.interface.encodeFunctionData('swapExactETHForTokens', [
+            0,
+            [WTLOSAddress,benchAddress],
+            ethAddress,
+            Date.now() + 1000 * 60 * 10
+        ])
+        gasLimit = 700000;
+    }
+
     let nonce = await telosApi.telos.getNonce(ethAddress)
     for (let i = 0; i < count; i++)
         actions.push({
@@ -174,7 +211,7 @@ async function getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, count) {
             ],
             data: {
                 ram_payer: 'eosio.evm',
-                tx: makeTrx(privateKeyBuffer, nonce++, gasPrice, 21000, 1, ethAddress, ''),
+                tx: makeTrx(privateKeyBuffer, nonce++, gasPrice, gasLimit, value, to, functionData),
                 estimate_gas: false,
                 sender: ethAddress.substring(2)
             }
@@ -203,5 +240,5 @@ function makeTrx(privateKeyBuffer, nonce, gasPrice, gasLimit, value, to, data) {
     }
 
     let tx = new Transaction(txData, { "common": chainConfig })
-    return tx.sign(privateKeyBuffer).serialize().toString('hex')
+    return tx.sign(privateKeyBuffer).serialize().toString('hex');
 }
