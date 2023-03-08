@@ -136,7 +136,7 @@ const api = new Api({
                 }
             })
         } catch (e) {
-            if (!e.message.contains("this address already exists"t ))
+            if (!e.message.contains("this address already exists"))
                 console.log(`Error calling openwallet: ${e.message}`)
         } finally {
             await sendAction({
