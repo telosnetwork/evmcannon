@@ -136,7 +136,8 @@ const api = new Api({
                 }
             })
         } catch (e) {
-            console.log(`Error calling openwallet: ${e.message}`)
+            if (!e.message.contains("this address already exists"t ))
+                console.log(`Error calling openwallet: ${e.message}`)
         } finally {
             await sendAction({
                 account: 'eosio.token',
