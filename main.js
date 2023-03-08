@@ -33,10 +33,19 @@ const router = new ethers.Contract(
         'function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)',
         'function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)',
         'function WETH() external pure returns (address)'
-
     ],
     new ethers.providers.JsonRpcProvider(`${config.ENDPOINT}/evm`)
 );
+
+const wTlos = new ethers.Contract(
+    WTLOSAddress,
+    [
+        'function approve(address guy, uint256 amount) public returns (bool)',
+        'function deposit() public payable',
+    ],
+    new ethers.providers.JsonRpcProvider(`${config.ENDPOINT}/evm`)
+);
+
 
 const Api = eosjs.Api;
 const JsonRpc = eosjs.JsonRpc;
@@ -87,16 +96,29 @@ const api = new Api({
     let addressTotal = config.EVM_SENDER_PKS.length;
     const batchSize = config.EVM_BATCH_SIZE;
     const chunkSize = config.EVM_PUSH_TRX_SIZE;
+    const swapSize = config.SWAP_SIZE;
     let totalTrx = addressTotal * batchSize;
+    let gasLimit = 31000;
 
     for (const key of config.EVM_SENDER_PKS) {
         const privateKeyBuffer = Buffer.from(key.startsWith('0x') ? key.substring(2) : key, 'hex')
         const ethAddress = "0x" + ethUtil.privateToAddress(privateKeyBuffer).toString('hex')
+        let nonce = await telosApi.telos.getNonce(ethAddress)
+        const amountToSendEther = ethers.utils.formatEther(
+            BigNumber.from(gasPrice).mul(21000)
+                .add(1).mul(batchSize)
+                .add(BigNumber.from(swapSize).mul(batchSize))
+                .add(BigNumber.from(gasPrice).mul(100000))
+        );
 
-        const amountToSendEther = ethers.utils.formatEther(BigNumber.from(gasPrice).mul(21000).add(1).mul(batchSize).add(100));
+        const wTlosApprovalData = wTlos.interface.encodeFunctionData('approve', [
+            pancakeSwapRouterAddress, ethers.constants.MaxUint256
+        ]);
+
 
         // add 1 for good measure ;)
         const amountToSend = (parseFloat(amountToSendEther, 10) + 1).toFixed(4)
+        const amountToWrap = BigNumber.from(swapSize).mul(batchSize).toHexString()
 
         try {
             await sendAction({
@@ -114,6 +136,7 @@ const api = new Api({
                 }
             })
         } catch (e) {
+            console.log(`Error calling openwallet: ${e.message}`)
         } finally {
             await sendAction({
                 account: 'eosio.token',
@@ -129,6 +152,36 @@ const api = new Api({
                     to: 'eosio.evm',
                     quantity: `${amountToSend} TLOS`,
                     memo: `${ethAddress}`
+                }
+            },{
+                account: 'eosio.evm',
+                name: "raw",
+                authorization: [
+                    {
+                        actor: config.TRANSFER_FROM,
+                        permission: "active"
+                    }
+                ],
+                data: {
+                    ram_payer: 'eosio.evm',
+                    tx: makeTrx(privateKeyBuffer, nonce++, gasPrice, gasLimit, amountToWrap, WTLOSAddress, ''),
+                    estimate_gas: false,
+                    sender: ethAddress.substring(2)
+                }
+            },{
+                account: 'eosio.evm',
+                name: "raw",
+                authorization: [
+                    {
+                        actor: config.TRANSFER_FROM,
+                        permission: "active"
+                    }
+                ],
+                data: {
+                    ram_payer: 'eosio.evm',
+                    tx: makeTrx(privateKeyBuffer, nonce++, gasPrice, gasLimit, 0, WTLOSAddress, wTlosApprovalData),
+                    estimate_gas: false,
+                    sender: ethAddress.substring(2)
                 }
             })
         }
@@ -189,7 +242,9 @@ async function getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, count) {
         value = 100000;
         value = 100000;
         to = pancakeSwapRouterAddress;
-        functionData = router.interface.encodeFunctionData('swapExactETHForTokens', [
+        //functionData = router.interface.encodeFunctionData('swapExactETHForTokens', [
+        functionData = router.interface.encodeFunctionData('swapExactTokensForTokens', [
+            config.SWAP_SIZE,
             0,
             [WTLOSAddress,benchAddress],
             ethAddress,

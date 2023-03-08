@@ -7,5 +7,6 @@
   "EVM_BATCH_SIZE": 100,
   "EVM_SENDER_PKS": [
   ],
-  "SWAP": false
+  "SWAP": false,
+  "SWAP_SIZE": 100
 }
