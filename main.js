@@ -103,7 +103,6 @@ const api = new Api({
     for (const key of config.EVM_SENDER_PKS) {
         const privateKeyBuffer = Buffer.from(key.startsWith('0x') ? key.substring(2) : key, 'hex')
         const ethAddress = "0x" + ethUtil.privateToAddress(privateKeyBuffer).toString('hex')
-        let nonce = await telosApi.telos.getNonce(ethAddress)
         const amountToSendEther = ethers.utils.formatEther(
             BigNumber.from(gasPrice).mul(21000)
                 .add(1).mul(batchSize)
@@ -139,6 +138,7 @@ const api = new Api({
             if (!e.message.includes("this address already exists"))
                 console.log(`Error calling openwallet: ${e.message}`)
         } finally {
+            let nonce = await telosApi.telos.getNonce(ethAddress)
             await sendAction({
                 account: 'eosio.token',
                 name: "transfer",
