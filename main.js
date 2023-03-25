@@ -9,6 +9,12 @@ import {TelosEvmApi} from "@telosnetwork/telosevm-js";
 import ethUtil from "ethereumjs-util";
 import ethTrx from "@ethereumjs/tx";
 import EthJSCommon from "@ethereumjs/common";
+import {
+    APIClient,
+    FetchProvider,
+} from '@greymass/eosio';
+
+const apiClient = new APIClient({provider: new FetchProvider(config.ENDPOINT)})
 
 const pancakeSwapRouterAddress = '0x67a5d237530c9e09a7b3fdf52071179f4621bb3d';
 const benchAddress = '0xAFe48Cba47D3ffB3e988b7F329388495Cf2Fbcc8';
@@ -22,6 +28,10 @@ import fs from "fs";
 
 let rawdata = fs.readFileSync('config.json');
 let config = JSON.parse(rawdata);
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
  // node only; not needed in browsers
 import readline from "readline";
@@ -134,6 +144,7 @@ const api = new Api({
                     address: ethAddress.substring(2)
                 }
             })
+            sleep(1000);
         } catch (e) {
             if (!e.message.includes("this address already exists"))
                 console.log(`Error calling openwallet: ${e.message}`)
