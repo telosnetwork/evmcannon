@@ -9,10 +9,12 @@ import {TelosEvmApi} from "@telosnetwork/telosevm-js";
 import ethUtil from "ethereumjs-util";
 import ethTrx from "@ethereumjs/tx";
 import EthJSCommon from "@ethereumjs/common";
+/*
 import {
     APIClient,
     FetchProvider,
 } from '@greymass/eosio';
+ */
 
 
 const pancakeSwapRouterAddress = '0x67a5d237530c9e09a7b3fdf52071179f4621bb3d';
@@ -28,7 +30,7 @@ import fs from "fs";
 let rawdata = fs.readFileSync('config.json');
 let config = JSON.parse(rawdata);
 
-const apiClient = new APIClient({provider: new FetchProvider(config.ENDPOINT)})
+//const apiClient = new APIClient({provider: new FetchProvider(config.ENDPOINT)})
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
