@@ -144,7 +144,7 @@ const api = new Api({
                     address: ethAddress.substring(2)
                 }
             })
-            sleep(1000);
+            await sleep(1000);
         } catch (e) {
             if (!e.message.includes("this address already exists"))
                 console.log(`Error calling openwallet: ${e.message}`)
