@@ -221,9 +221,9 @@ const api = new Api({
                 batches.push(blastTransactions.slice(i, i + chunkSize));
             }
 
+            console.log(`Launching push_transactions for ${batches.length} workers!`);
             batches.forEach((currentBatch, idx) => {
                 let workerId = idx + 1;
-                console.log(`Launching push_transactions worker #${workerId}`);
                 const worker = new Worker('./cannonWorker.js', {
                     workerData: {transactions: currentBatch, workerId}
                 });
