@@ -9,7 +9,14 @@ import util from "util";
 const JsonRpc = eosjs.JsonRpc;
 let rawdata = fs.readFileSync('config.json');
 let config = JSON.parse(rawdata);
-const nodeUrl = config.ENDPOINT;
+
+const endpoints = config.ENDPOINTS;
+let nodeUrl = config.ENDPOINT;
+
+if (endpoints && endpoints.length) {
+    nodeUrl = endpoints[(workerData.workerId - 1) % endpoints.length]
+}
+
 
 //const signatureProvider = new JsSignatureProvider([config.PRIV_KEY_TO_SIGN_TX]);
 const rpc = new JsonRpc(nodeUrl, { fetch });
