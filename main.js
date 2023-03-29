@@ -124,8 +124,8 @@ const api = new Api({
         );
 
         const wTlosApprovalData = wTlos.interface.encodeFunctionData('approve', [
-            //pancakeSwapRouterAddress, ethers.constants.MaxUint256
-            pancakeSwapRouterAddress, new ethers.BigNumber.from('9999999999999999')
+            pancakeSwapRouterAddress, ethers.constants.MaxUint256
+            //pancakeSwapRouterAddress, new ethers.BigNumber.from('9999999999999999')
         ]);
 
 
@@ -154,7 +154,7 @@ const api = new Api({
                 console.log(`Error calling openwallet: ${e.message}`)
         } finally {
             let nonce = await telosApi.telos.getNonce(ethAddress)
-            await sendAction({
+            await sendActions([{
                 account: 'eosio.token',
                 name: "transfer",
                 authorization: [
@@ -199,7 +199,7 @@ const api = new Api({
                     estimate_gas: false,
                     sender: ethAddress.substring(2)
                 }
-            })
+            }])
         }
         process.stdout.write(`Loaded ${++addressCount * batchSize}/${totalTrx} transactions.  This is ${batchSize} EVM transactions for each of the ${addressTotal} addresses.\r`);
         trxPromises.push(getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, batchSize));
