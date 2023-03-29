@@ -19,7 +19,7 @@ if (endpoints && endpoints.length) {
 
 
 //const signatureProvider = new JsSignatureProvider([config.PRIV_KEY_TO_SIGN_TX]);
-const rpc = new JsonRpc(nodeUrl, { fetch });
+const rpc = new JsonRpc(nodeUrl, {fetch});
 
 /*
 const api = new Api({
@@ -33,3 +33,7 @@ const api = new Api({
 const blastResult = await rpc.push_transactions(workerData.transactions);
 console.log(`Worker #${workerData.workerId}`);
 blastResult.forEach(trx => console.log(trx.transaction_id))
+blastResult.forEach(trx => {
+    if (trx.transaction_id === '0000000000000000000000000000000000000000000000000000000000000000')
+        console.log(trx.processed.error)
+})
