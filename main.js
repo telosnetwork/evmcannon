@@ -111,7 +111,7 @@ const api = new Api({
     const chunkSize = config.EVM_PUSH_TRX_SIZE;
     const swapSize = config.SWAP_SIZE;
     let totalTrx = addressTotal * batchSize;
-    let gasLimit = 31000;
+    let gasLimit = 100000;
 
     for (const key of config.EVM_SENDER_PKS) {
         const privateKeyBuffer = Buffer.from(key.startsWith('0x') ? key.substring(2) : key, 'hex')
@@ -124,7 +124,8 @@ const api = new Api({
         );
 
         const wTlosApprovalData = wTlos.interface.encodeFunctionData('approve', [
-            pancakeSwapRouterAddress, ethers.constants.MaxUint256
+            //pancakeSwapRouterAddress, ethers.constants.MaxUint256
+            pancakeSwapRouterAddress, new ethers.BigNumber.from('9999999999999999')
         ]);
 
 
@@ -239,8 +240,11 @@ const api = new Api({
 
 
 async function sendAction(action) {
+    return sendActions([action])
+}
+async function sendActions(actions) {
     const result = await api.transact(
-        { actions: [action] },
+        { actions },
         {
             blocksBehind: 3, expireSeconds: 60 * 55
     });
@@ -254,8 +258,7 @@ async function getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, count) {
     let to = ethAddress;
     let value = 1;
     if (config.SWAP) {
-        value = 100000;
-        value = 100000;
+        value = 0;
         to = pancakeSwapRouterAddress;
         //functionData = router.interface.encodeFunctionData('swapExactETHForTokens', [
         functionData = router.interface.encodeFunctionData('swapExactTokensForTokens', [
