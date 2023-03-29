@@ -131,6 +131,7 @@ const api = new Api({
         const amountToSend = (parseFloat(amountToSendEther, 10) + 1).toFixed(4)
         const amountToWrap = BigNumber.from(swapSize).mul(batchSize).toHexString()
 
+        let nonce;
         try {
             await sendAction({
                 account: 'eosio.evm',
@@ -151,8 +152,8 @@ const api = new Api({
             if (!e.message.includes("this address already exists"))
                 console.log(`Error calling openwallet: ${e.message}`)
         } finally {
-            let nonce = await telosApi.telos.getNonce(ethAddress)
-            await sendActions([{
+            nonce = await telosApi.telos.getNonce(ethAddress)
+            const actions = [{
                 account: 'eosio.token',
                 name: "transfer",
                 authorization: [
@@ -167,37 +168,43 @@ const api = new Api({
                     quantity: `${amountToSend} TLOS`,
                     memo: `${ethAddress}`
                 }
-            },{
-                account: 'eosio.evm',
-                name: "raw",
-                authorization: [
-                    {
-                        actor: config.TRANSFER_FROM,
-                        permission: "active"
+            }];
+            if (config.SWAP) {
+                actions.push({
+                    account: 'eosio.evm',
+                    name: "raw",
+                    authorization: [
+                        {
+                            actor: config.TRANSFER_FROM,
+                            permission: "active"
+                        }
+                    ],
+                    data: {
+                        ram_payer: 'eosio.evm',
+                        tx: makeTrx(privateKeyBuffer, nonce++, gasPrice, gasLimit, amountToWrap, WTLOSAddress, ''),
+                        estimate_gas: false,
+                        sender: ethAddress.substring(2)
                     }
-                ],
-                data: {
-                    ram_payer: 'eosio.evm',
-                    tx: makeTrx(privateKeyBuffer, nonce++, gasPrice, gasLimit, amountToWrap, WTLOSAddress, ''),
-                    estimate_gas: false,
-                    sender: ethAddress.substring(2)
-                }
-            },{
-                account: 'eosio.evm',
-                name: "raw",
-                authorization: [
-                    {
-                        actor: config.TRANSFER_FROM,
-                        permission: "active"
+                })
+                actions.push({
+                    account: 'eosio.evm',
+                    name: "raw",
+                    authorization: [
+                        {
+                            actor: config.TRANSFER_FROM,
+                            permission: "active"
+                        }
+                    ],
+                    data: {
+                        ram_payer: 'eosio.evm',
+                        tx: makeTrx(privateKeyBuffer, nonce++, gasPrice, gasLimit, 0, WTLOSAddress, wTlosApprovalData),
+                        estimate_gas: false,
+                        sender: ethAddress.substring(2)
                     }
-                ],
-                data: {
-                    ram_payer: 'eosio.evm',
-                    tx: makeTrx(privateKeyBuffer, nonce++, gasPrice, gasLimit, 0, WTLOSAddress, wTlosApprovalData),
-                    estimate_gas: false,
-                    sender: ethAddress.substring(2)
-                }
-            }])
+                })
+            }
+            await sendActions(actions);
+
         }
         process.stdout.write(`Loaded ${++addressCount * batchSize}/${totalTrx} transactions.  This is ${batchSize} EVM transactions for each of the ${addressTotal} addresses.\r`);
         trxPromises.push(getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, batchSize, nonce));
