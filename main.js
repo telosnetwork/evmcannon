@@ -15,10 +15,9 @@ import {
 } from '@greymass/eosio';
 
 
-const pancakeSwapRouterAddress = '0x67a5d237530c9e09a7b3fdf52071179f4621bb3d';
-const benchAddress = '0xAFe48Cba47D3ffB3e988b7F329388495Cf2Fbcc8';
-const WTLOSAddress = '0x5bf0E1Fa3B7988660E8d22860743BB289196f0ac';
-const pairAddress = '0xfB7b8DC300661dD6b787cde08AF9CF4b1Db825B7';
+const pancakeSwapRouterAddress = '0xd03d102c9dfce013ea4671b5c282d65cf1eb1dc5';
+const benchAddress = '0xd9151F839a9d8D280C0a3a694C82b6865BbCa099';
+const WTLOSAddress = '0xaE85Bf723A9e74d6c663dd226996AC1b8d075AA9';
 
 const Common = EthJSCommon.default;
 const Transaction = ethTrx.Transaction;
