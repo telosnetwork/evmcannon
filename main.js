@@ -9,12 +9,10 @@ import {TelosEvmApi} from "@telosnetwork/telosevm-js";
 import ethUtil from "ethereumjs-util";
 import ethTrx from "@ethereumjs/tx";
 import EthJSCommon from "@ethereumjs/common";
-/*
 import {
     APIClient,
     FetchProvider,
 } from '@greymass/eosio';
- */
 
 
 const pancakeSwapRouterAddress = '0x67a5d237530c9e09a7b3fdf52071179f4621bb3d';
@@ -30,7 +28,7 @@ import fs from "fs";
 let rawdata = fs.readFileSync('config.json');
 let config = JSON.parse(rawdata);
 
-//const apiClient = new APIClient({provider: new FetchProvider(config.ENDPOINT)})
+const apiClient = new APIClient({provider: new FetchProvider(config.ENDPOINT)})
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -202,7 +200,7 @@ const api = new Api({
             }])
         }
         process.stdout.write(`Loaded ${++addressCount * batchSize}/${totalTrx} transactions.  This is ${batchSize} EVM transactions for each of the ${addressTotal} addresses.\r`);
-        trxPromises.push(getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, batchSize));
+        trxPromises.push(getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, batchSize, nonce));
     }
     console.log(`\nWaiting for all transactions to be generated...`);
     const blastTransactions = await Promise.all(trxPromises);
@@ -250,7 +248,7 @@ async function sendActions(actions) {
     });
 }
 
-async function getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, count) {
+async function getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, count, nonce) {
     let actions = []
 
     let gasLimit = 21000;
@@ -271,7 +269,6 @@ async function getBatchTrx(ethAddress, privateKeyBuffer, gasPrice, count) {
         gasLimit = 700000;
     }
 
-    let nonce = await telosApi.telos.getNonce(ethAddress)
     for (let i = 0; i < count; i++)
         actions.push({
             account: 'eosio.evm',
